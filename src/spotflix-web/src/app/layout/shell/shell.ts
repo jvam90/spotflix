@@ -46,14 +46,6 @@ import { initials } from '../../core/util';
 
       <div class="main">
         <header class="topbar">
-          <div class="topbar__nav">
-            <button class="round" (click)="back()" title="Voltar">
-              <span class="material-symbols-rounded">chevron_left</span>
-            </button>
-            <button class="round" (click)="forward()" title="Avançar">
-              <span class="material-symbols-rounded">chevron_right</span>
-            </button>
-          </div>
           <div class="spacer"></div>
 
           @if (auth.isAuthenticated()) {
