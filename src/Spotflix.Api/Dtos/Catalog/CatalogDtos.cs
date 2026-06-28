@@ -25,15 +25,16 @@ public record BandDetailDto
 
 public record CreateBandDto
 {
-    [Required, StringLength(200)]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [StringLength(200, ErrorMessage = "O nome deve ter no máximo 200 caracteres.")]
     public string Name { get; init; } = null!;
 
-    [StringLength(100)]
+    [StringLength(100, ErrorMessage = "O gênero deve ter no máximo 100 caracteres.")]
     public string? Genre { get; init; }
 
     public string? Bio { get; init; }
 
-    [Range(1900, 2100)]
+    [Range(1900, 2100, ErrorMessage = "O ano de formação deve estar entre 1900 e 2100.")]
     public int? FormedYear { get; init; }
 }
 
@@ -62,10 +63,11 @@ public record AlbumDetailDto
 
 public record CreateAlbumDto
 {
-    [Required, StringLength(250)]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [StringLength(250, ErrorMessage = "O título deve ter no máximo 250 caracteres.")]
     public string Title { get; init; } = null!;
 
-    [Range(1900, 2100)]
+    [Range(1900, 2100, ErrorMessage = "O ano de lançamento deve estar entre 1900 e 2100.")]
     public int? ReleaseYear { get; init; }
 }
 
@@ -84,13 +86,14 @@ public record SongDto
 
 public record CreateSongDto
 {
-    [Required, StringLength(300)]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [StringLength(300, ErrorMessage = "O título deve ter no máximo 300 caracteres.")]
     public string Title { get; init; } = null!;
 
-    [Range(1, 86_400)]
+    [Range(1, 86_400, ErrorMessage = "A duração deve estar entre 1 e 86.400 segundos.")]
     public int DurationSeconds { get; init; }
 
-    [Range(1, 1000)]
+    [Range(1, 1000, ErrorMessage = "O número da faixa deve estar entre 1 e 1000.")]
     public int TrackNumber { get; init; }
 }
 

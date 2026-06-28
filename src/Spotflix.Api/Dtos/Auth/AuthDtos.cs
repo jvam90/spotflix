@@ -4,22 +4,25 @@ namespace Spotflix.Api.Dtos.Auth;
 
 public record RegisterDto
 {
-    [Required, EmailAddress]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [EmailAddress(ErrorMessage = "Informe um endereço de e-mail válido.")]
     public string Email { get; init; } = null!;
 
-    [Required, StringLength(100, MinimumLength = 8)]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "A senha deve ter entre 8 e 100 caracteres.")]
     public string Password { get; init; } = null!;
 
-    [StringLength(150)]
+    [StringLength(150, ErrorMessage = "O nome deve ter no máximo 150 caracteres.")]
     public string? FullName { get; init; }
 }
 
 public record LoginDto
 {
-    [Required, EmailAddress]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [EmailAddress(ErrorMessage = "Informe um endereço de e-mail válido.")]
     public string Email { get; init; } = null!;
 
-    [Required]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
     public string Password { get; init; } = null!;
 }
 
@@ -34,42 +37,46 @@ public record TokenResponseDto
 
 public record RefreshTokenDto
 {
-    [Required]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
     public string RefreshToken { get; init; } = null!;
 }
 
 public record ConfirmEmailDto
 {
-    [Required]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
     public string UserId { get; init; } = null!;
 
-    [Required]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
     public string Token { get; init; } = null!;
 }
 
 public record ForgotPasswordDto
 {
-    [Required, EmailAddress]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [EmailAddress(ErrorMessage = "Informe um endereço de e-mail válido.")]
     public string Email { get; init; } = null!;
 }
 
 public record ResetPasswordDto
 {
-    [Required, EmailAddress]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [EmailAddress(ErrorMessage = "Informe um endereço de e-mail válido.")]
     public string Email { get; init; } = null!;
 
-    [Required]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
     public string Token { get; init; } = null!;
 
-    [Required, StringLength(100, MinimumLength = 8)]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "A senha deve ter entre 8 e 100 caracteres.")]
     public string NewPassword { get; init; } = null!;
 }
 
 public record ChangePasswordDto
 {
-    [Required]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
     public string CurrentPassword { get; init; } = null!;
 
-    [Required, StringLength(100, MinimumLength = 8)]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "A nova senha deve ter entre 8 e 100 caracteres.")]
     public string NewPassword { get; init; } = null!;
 }

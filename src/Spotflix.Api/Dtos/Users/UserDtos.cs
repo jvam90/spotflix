@@ -17,13 +17,14 @@ public record UserDto
 
 public record UpdateProfileDto
 {
-    [StringLength(150)]
+    [StringLength(150, ErrorMessage = "O nome deve ter no máximo 150 caracteres.")]
     public string? FullName { get; init; }
 }
 
 public record AssignRolesDto
 {
-    [Required, MinLength(1)]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [MinLength(1, ErrorMessage = "Informe pelo menos 1 papel.")]
     public IReadOnlyList<string> Roles { get; init; } = Array.Empty<string>();
 }
 

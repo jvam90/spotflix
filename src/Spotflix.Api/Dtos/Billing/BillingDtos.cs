@@ -15,13 +15,14 @@ public record PlanDto
 
 public record CreatePlanDto
 {
-    [Required, StringLength(120)]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
+    [StringLength(120, ErrorMessage = "O nome deve ter no máximo 120 caracteres.")]
     public string Name { get; init; } = null!;
 
-    [Range(0, 100_000)]
+    [Range(0, 100_000, ErrorMessage = "O preço deve estar entre 0 e 100.000.")]
     public decimal Price { get; init; }
 
-    [Required]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
     public BillingPeriod Period { get; init; }
 
     public string? Description { get; init; }
@@ -34,7 +35,7 @@ public record UpdatePlanDto : CreatePlanDto
 
 public record SubscribeDto
 {
-    [Required]
+    [Required(ErrorMessage = "O campo {0} é obrigatório.")]
     public Guid PlanId { get; init; }
 
     /// <summary>Cartão a cobrar (obrigatório para planos pagos). Se omitido, usa o primeiro cartão ativo do usuário.</summary>

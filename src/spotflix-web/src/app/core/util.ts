@@ -40,6 +40,10 @@ export function apiError(err: unknown, fallback = 'Algo deu errado. Tente novame
     if (typeof body === 'string') return body;
     if (body?.message) return body.message;
     if (Array.isArray(body?.errors)) return body.errors.join(' ');
+    if (body?.errors && typeof body.errors === 'object' && !Array.isArray(body.errors)) {
+      const messages = Object.values(body.errors as Record<string, string[]>).flat();
+      if (messages.length) return messages.join(' ');
+    }
     if (Array.isArray(body?.violations) && body.violations.length) {
       return `${body.message ?? 'Operação recusada.'} (${body.violations.join(', ')})`;
     }
