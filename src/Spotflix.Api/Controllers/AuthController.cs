@@ -18,6 +18,7 @@ public class AuthController : ControllerBase
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITokenService _tokenService;
     private readonly IEmailSender _emailSender;
+    private readonly EmailTemplateRenderer _templateRenderer;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
@@ -25,12 +26,14 @@ public class AuthController : ControllerBase
         SignInManager<ApplicationUser> signInManager,
         ITokenService tokenService,
         IEmailSender emailSender,
+        EmailTemplateRenderer templateRenderer,
         ILogger<AuthController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
         _emailSender = emailSender;
+        _templateRenderer = templateRenderer;
         _logger = logger;
     }
 
@@ -53,11 +56,14 @@ public class AuthController : ControllerBase
 
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        await _emailSender.SendAsync(
-            dto.Email,
-            "Confirme seu e-mail",
-            $"Confirme sua conta usando userId={user.Id} e token={encoded}",
-            ct);
+        var emailBody = _templateRenderer.Render("confirm-email", new()
+        {
+            ["FullName"] = user.FullName,
+            ["UserId"]   = user.Id.ToString(),
+            ["Token"]    = encoded,
+        });
+
+        await _emailSender.SendAsync(dto.Email, "Confirme seu e-mail", emailBody, ct);
 
         return Ok(new { message = "Usuário registrado. Verifique o e-mail para confirmar a conta." });
     }

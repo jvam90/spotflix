@@ -86,6 +86,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection(SmtpSettings.SectionName));
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+builder.Services.AddSingleton<EmailTemplateRenderer>();
 builder.Services.AddScoped<IPaymentAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<ITransactionNotifier, TransactionNotifier>();
 

@@ -11,8 +11,7 @@ import { apiError } from '../../core/util';
   template: `
     <h1 class="title">Confirme seu e-mail</h1>
     <p class="muted center hint">
-      Em desenvolvimento, o link de confirmação é registrado no log da API.
-      Informe o <strong>userId</strong> e o <strong>token</strong> exibidos lá.
+      Verifique sua caixa de entrada e informe o <strong>userId</strong> e o <strong>token</strong> recebidos por e-mail.
     </p>
 
     <form (ngSubmit)="submit()">
