@@ -20,7 +20,9 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
             .Build();
 
         var connStr = config.GetConnectionString("Default")
-            ?? "Host=localhost;Port=5432;Database=spotflix;Username=postgres;Password=postgres";
+            ?? throw new InvalidOperationException(
+                "Connection string 'Default' não configurada. " +
+                "Copie appsettings.Development.json.example para appsettings.Development.json e preencha os valores.");
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(connStr)
