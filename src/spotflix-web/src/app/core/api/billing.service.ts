@@ -22,8 +22,8 @@ export class BillingService {
     return this.http.put<void>(`/api/plans/${id}`, body);
   }
 
-  mySubscription(): Observable<Subscription> {
-    return this.http.get<Subscription>('/api/subscriptions/me').pipe(
+  mySubscription(): Observable<Subscription | null> {
+    return this.http.get<Subscription | null>('/api/subscriptions/me').pipe(
       tap((sub) => this.currentSubscription.set(sub)),
     );
   }

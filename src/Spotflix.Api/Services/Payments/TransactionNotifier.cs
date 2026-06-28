@@ -24,9 +24,16 @@ public class TransactionNotifier : ITransactionNotifier
     {
         var amount = transaction.Amount.ToString("C");
 
-        // Dono do cartão — e-mail.
+        // Dono do cartão — e-mail (falha não aborta a transação).
         var cardholderMsg = $"Transação de {amount} autorizada em {transaction.Merchant} às {transaction.OccurredAt:u}.";
-        await _emailSender.SendAsync(cardholderEmail, "Transação autorizada", cardholderMsg, ct);
+        try
+        {
+            await _emailSender.SendAsync(cardholderEmail, "Transação autorizada", cardholderMsg, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao enviar e-mail de notificação para {Email}", cardholderEmail);
+        }
 
         // Comerciante — canal de log (substituível por webhook/integração real).
         var merchantMsg = $"Você recebeu uma transação autorizada de {amount} às {transaction.OccurredAt:u}.";

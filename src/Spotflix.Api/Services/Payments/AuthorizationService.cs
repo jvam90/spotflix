@@ -27,7 +27,7 @@ public class AuthorizationService : IPaymentAuthorizationService
 
     public async Task<AuthorizationResult> AuthorizeAsync(AuthorizationRequest request, CancellationToken ct = default)
     {
-        var card = await _cardRepository.GetByIdAsync(request.CardId, ct);
+        var card = await _cardRepository.GetByIdWithUserAsync(request.CardId, ct);
         if (card is null)
         {
             // Sem cartão não há estado de conta: registramos a tentativa recusada sem vínculo.
@@ -39,9 +39,6 @@ public class AuthorizationService : IPaymentAuthorizationService
 
         if (!card.Active)
             violations.Add(Violations.CardNotActive);
-
-        if (request.Amount > card.AvailableLimit)
-            violations.Add(Violations.InsufficientLimit);
 
         // Regras baseadas no histórico autorizado dentro da janela de tempo.
         var windowStart = request.OccurredAt - Window;
@@ -58,10 +55,7 @@ public class AuthorizationService : IPaymentAuthorizationService
         transaction.CardId = card.Id;
 
         if (status == TransactionStatus.Authorized)
-        {
-            card.AvailableLimit -= request.Amount;
             _logger.LogInformation("Transaction authorized: Card={CardId}, Amount={Amount}, Merchant={Merchant}", card.Id, request.Amount, request.Merchant);
-        }
         else
         {
             _logger.LogWarning("Transaction declined: Card={CardId}, Amount={Amount}, Violations={ViolationCount}", card.Id, request.Amount, violations.Count);

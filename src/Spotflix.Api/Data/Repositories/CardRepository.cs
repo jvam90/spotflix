@@ -15,4 +15,11 @@ public class CardRepository : Repository<Card>, ICardRepository
             .Where(c => c.UserId == userId)
             .ToListAsync(ct);
     }
+
+    public async Task<Card?> GetByIdWithUserAsync(Guid id, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Include(c => c.User)
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
+    }
 }

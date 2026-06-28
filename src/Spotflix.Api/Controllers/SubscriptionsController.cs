@@ -50,7 +50,7 @@ public class SubscriptionsController : ControllerBase
             })
             .FirstOrDefaultAsync(ct);
 
-        return sub is null ? NotFound(new { message = "Sem assinatura ativa." }) : Ok(sub);
+        return Ok(sub);
     }
 
     /// <summary>Assina um plano. Substitui a assinatura ativa anterior, se houver.</summary>
@@ -62,6 +62,27 @@ public class SubscriptionsController : ControllerBase
         var plan = await _db.Plans.FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.IsActive, ct);
         if (plan is null)
             return BadRequest(new { message = "Plano inválido ou inativo." });
+
+        // Valida upgrade/downgrade em relação à assinatura ativa.
+        var currentActive = await _db.Subscriptions.AsNoTracking()
+            .Include(s => s.Plan)
+            .Where(s => s.UserId == userId && s.Status == SubscriptionStatus.Active)
+            .OrderByDescending(s => s.StartedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (currentActive is not null)
+        {
+            if (plan.Price < currentActive.Plan.Price)
+                return BadRequest(new
+                {
+                    message = $"Não é possível migrar para um plano inferior. " +
+                              $"Seu plano atual é {currentActive.Plan.Name} " +
+                              $"({currentActive.Plan.Price:C}/mês)."
+                });
+
+            if (plan.Id == currentActive.PlanId)
+                return BadRequest(new { message = "Você já assina este plano." });
+        }
 
         // Planos pagos passam pelo motor de autorização (pagamento mockado).
         // Planos gratuitos (preço 0) dispensam cartão e ativam direto.

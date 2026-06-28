@@ -42,9 +42,10 @@ import { apiError, formatDate, formatMoney } from '../../core/util';
             </div>
             @if (p.description) { <p class="desc muted">{{ p.description }}</p> }
             <button class="btn btn--block"
-                    [disabled]="isCurrent(p)"
+                    [disabled]="isCurrent(p) || isInferior(p)"
+                    [title]="isInferior(p) ? 'Não é possível migrar para um plano inferior' : ''"
                     (click)="choose(p)">
-              {{ isCurrent(p) ? 'Plano atual' : 'Assinar' }}
+              {{ isCurrent(p) ? 'Plano atual' : isInferior(p) ? 'Plano inferior' : 'Assinar' }}
             </button>
           </div>
         }
@@ -66,7 +67,7 @@ import { apiError, formatDate, formatMoney } from '../../core/util';
               <label>Cartão</label>
               <select class="select" [value]="selectedCard()" (change)="selectedCard.set($any($event.target).value)">
                 @for (c of cards(); track c.id) {
-                  <option [value]="c.id">{{ c.brand }} •••• {{ c.last4 }} — limite {{ formatMoney(c.availableLimit) }}</option>
+                  <option [value]="c.id">{{ c.brand }} •••• {{ c.last4 }}</option>
                 }
               </select>
             </div>
@@ -135,6 +136,10 @@ export class Plans {
 
   protected period(p: BillingPeriod) { return p === BillingPeriod.Yearly ? 'ano' : 'mês'; }
   protected isCurrent = (p: Plan) => computed(() => this.current()?.planId === p.id)();
+  protected isInferior = (p: Plan) => computed(() => {
+    const sub = this.current();
+    return sub !== null && p.price < sub.price;
+  })();
 
   protected choose(plan: Plan) {
     if (!this.auth.isAuthenticated()) {
