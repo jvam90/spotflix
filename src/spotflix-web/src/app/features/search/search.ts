@@ -15,8 +15,8 @@ import { apiError } from '../../core/util';
     <div class="searchbox">
       <span class="material-symbols-rounded">search</span>
       <input class="input" autofocus placeholder="O que você quer ouvir? (bandas e músicas)"
-             [(ngModel)]="term" (input)="onInput()" />
-      @if (term) {
+             [ngModel]="term()" (ngModelChange)="onInput($event)" />
+      @if (term()) {
         <button class="clear" (click)="clear()"><span class="material-symbols-rounded">close</span></button>
       }
     </div>
@@ -26,7 +26,7 @@ import { apiError } from '../../core/util';
     } @else if (!hasTerm()) {
       <div class="empty"><span class="material-symbols-rounded">search</span><p>Digite ao menos 2 caracteres para buscar.</p></div>
     } @else if (isEmpty()) {
-      <div class="empty"><span class="material-symbols-rounded">sentiment_dissatisfied</span><p>Nada encontrado para "{{ term }}".</p></div>
+      <div class="empty"><span class="material-symbols-rounded">sentiment_dissatisfied</span><p>Nada encontrado para "{{ term() }}".</p></div>
     } @else {
       @let r = result();
       @if (r && r.songs.length) {
@@ -66,13 +66,13 @@ export class Search {
   private catalog = inject(CatalogService);
   private toast = inject(ToastService);
 
-  protected term = '';
+  protected term = signal('');
   protected result = signal<SearchResult | null>(null);
   protected loading = signal(false);
 
   private debounce?: ReturnType<typeof setTimeout>;
 
-  protected hasTerm = computed(() => this.term.trim().length >= 2);
+  protected hasTerm = computed(() => this.term().trim().length >= 2);
   protected isEmpty = computed(() => {
     const r = this.result();
     return !!r && r.bands.length === 0 && r.songs.length === 0;
@@ -83,14 +83,15 @@ export class Search {
       albumId: s.albumId, bandName: s.bandName, albumTitle: s.albumTitle,
     })));
 
-  protected onInput() {
+  protected onInput(value: string) {
+    this.term.set(value);
     clearTimeout(this.debounce);
-    const q = this.term.trim();
+    const q = value.trim();
     if (q.length < 2) { this.result.set(null); return; }
     this.debounce = setTimeout(() => this.run(q), 300);
   }
 
-  protected clear() { this.term = ''; this.result.set(null); }
+  protected clear() { this.onInput(''); }
 
   private run(q: string) {
     this.loading.set(true);

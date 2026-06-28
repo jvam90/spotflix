@@ -18,6 +18,7 @@ public class SearchRepository : ISearchRepository
         limit = Math.Clamp(limit, 1, 50);
 
         return await _db.Bands.AsNoTracking()
+            .Include(b => b.Albums)
             .Where(b => EF.Functions.ILike(b.Name, searchTerm))
             .OrderBy(b => b.Name)
             .Take(limit)
@@ -30,6 +31,7 @@ public class SearchRepository : ISearchRepository
         limit = Math.Clamp(limit, 1, 50);
 
         return await _db.Songs.AsNoTracking()
+            .Include(s => s.Album).ThenInclude(a => a.Band)
             .Where(s => EF.Functions.ILike(s.Title, searchTerm))
             .OrderBy(s => s.Title)
             .Take(limit)
