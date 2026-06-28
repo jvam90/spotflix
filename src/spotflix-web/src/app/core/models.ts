@@ -71,6 +71,7 @@ export interface Song {
   durationSeconds: number;
   trackNumber: number;
   albumId: string;
+  hasAudio: boolean;
 }
 
 export interface SongSearchHit {
@@ -81,6 +82,7 @@ export interface SongSearchHit {
   albumTitle: string;
   bandId: string;
   bandName: string;
+  hasAudio: boolean;
 }
 
 export interface SearchResult {

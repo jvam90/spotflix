@@ -14,4 +14,8 @@ public class Song
     public Guid AlbumId { get; set; }
 
     public Album Album { get; set; } = null!;
+
+    public byte[]? AudioData { get; set; }
+
+    public string? ContentType { get; set; }
 }

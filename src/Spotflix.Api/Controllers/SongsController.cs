@@ -34,6 +34,7 @@ public class SongsController : ControllerBase
                 DurationSeconds = s.DurationSeconds,
                 TrackNumber = s.TrackNumber,
                 AlbumId = s.AlbumId,
+                HasAudio = s.AudioData != null,
             })
             .ToListAsync(ct);
 
@@ -53,6 +54,7 @@ public class SongsController : ControllerBase
                 DurationSeconds = s.DurationSeconds,
                 TrackNumber = s.TrackNumber,
                 AlbumId = s.AlbumId,
+                HasAudio = s.AudioData != null,
             })
             .FirstOrDefaultAsync(ct);
 
@@ -110,6 +112,22 @@ public class SongsController : ControllerBase
         return NoContent();
     }
 
+    [AllowAnonymous]
+    [HttpGet("songs/{id:guid}/stream")]
+    public async Task<IActionResult> Stream(Guid id, CancellationToken ct)
+    {
+        var song = await _db.Songs.AsNoTracking()
+            .Where(s => s.Id == id)
+            .Select(s => new { s.AudioData, s.ContentType })
+            .FirstOrDefaultAsync(ct);
+
+        if (song is null || song.AudioData is null)
+            return NotFound();
+
+        return File(song.AudioData, song.ContentType ?? "audio/mpeg",
+                    enableRangeProcessing: true);
+    }
+
     private static SongDto ToDto(Song s) => new()
     {
         Id = s.Id,
@@ -117,5 +135,6 @@ public class SongsController : ControllerBase
         DurationSeconds = s.DurationSeconds,
         TrackNumber = s.TrackNumber,
         AlbumId = s.AlbumId,
+        HasAudio = s.AudioData != null,
     };
 }

@@ -58,7 +58,7 @@ public class AuthController : ControllerBase
         var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
         var emailBody = _templateRenderer.Render("confirm-email", new()
         {
-            ["FullName"] = user.FullName,
+            ["FullName"] = user.FullName ?? "",
             ["UserId"]   = user.Id.ToString(),
             ["Token"]    = encoded,
         });

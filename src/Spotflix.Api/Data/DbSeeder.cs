@@ -26,7 +26,7 @@ public static class DbSeeder
         await SeedAdminUserAsync(sp, db);
         await SeedTestUsersAsync(sp, db);
         await SeedPlansAsync(db);
-        await SeedCatalogAsync(db);
+        await SeedCatalogFromMp3sAsync(sp, db);
         await SeedCardsAsync(db);
         await SeedTransactionsAsync(db);
         await SeedSubscriptionsAsync(db);
@@ -143,139 +143,80 @@ public static class DbSeeder
         await db.SaveChangesAsync();
     }
 
-    private static async Task SeedCatalogAsync(AppDbContext db)
+    private static async Task SeedCatalogFromMp3sAsync(IServiceProvider sp, AppDbContext db)
     {
         if (await db.Bands.AnyAsync())
-            return;
-
-        var bands = new[]
         {
-            new Band { Id = Guid.NewGuid(), Name = "The Beatles", Genre = "Rock", FormedYear = 1960 },
-            new Band { Id = Guid.NewGuid(), Name = "Pink Floyd", Genre = "Rock Progressivo", FormedYear = 1965 },
-            new Band { Id = Guid.NewGuid(), Name = "Queen", Genre = "Rock", FormedYear = 1970 },
-            new Band { Id = Guid.NewGuid(), Name = "David Bowie", Genre = "Rock", FormedYear = 1967 },
-            new Band { Id = Guid.NewGuid(), Name = "Led Zeppelin", Genre = "Hard Rock", FormedYear = 1968 },
-            new Band { Id = Guid.NewGuid(), Name = "The Rolling Stones", Genre = "Rock", FormedYear = 1962 },
-        };
+            // Catálogo antigo (sem áudio) já populado — limpa e ressemeia.
+            if (await db.Songs.AnyAsync(s => s.AudioData != null))
+                return; // Já semeado com áudio, nada a fazer.
 
-        await db.Bands.AddRangeAsync(bands);
-        await db.SaveChangesAsync();
+            db.FavoriteSongs.RemoveRange(db.FavoriteSongs);
+            db.FavoriteBands.RemoveRange(db.FavoriteBands);
+            db.Songs.RemoveRange(db.Songs);
+            db.Albums.RemoveRange(db.Albums);
+            db.Bands.RemoveRange(db.Bands);
+            await db.SaveChangesAsync();
+        }
 
-        var bandsFromDb = await db.Bands.ToListAsync();
+        var env = sp.GetRequiredService<IWebHostEnvironment>();
+        var mp3Dir = Path.GetFullPath(Path.Combine(env.ContentRootPath, "..", "..", "Mp3"));
+        if (!Directory.Exists(mp3Dir)) return;
 
-        var beatles = bandsFromDb.First(b => b.Name == "The Beatles");
-        var abeyRoad = new Album { Id = Guid.NewGuid(), BandId = beatles.Id, Title = "Abbey Road", ReleaseYear = 1969 };
-        var whiteSongs = new Album { Id = Guid.NewGuid(), BandId = beatles.Id, Title = "The White Album", ReleaseYear = 1968 };
+        var files = Directory.GetFiles(mp3Dir, "*.mp3");
+        if (files.Length == 0) return;
 
-        var pinkFloyd = bandsFromDb.First(b => b.Name == "Pink Floyd");
-        var darkSide = new Album { Id = Guid.NewGuid(), BandId = pinkFloyd.Id, Title = "The Dark Side of the Moon", ReleaseYear = 1973 };
-        var wish = new Album { Id = Guid.NewGuid(), BandId = pinkFloyd.Id, Title = "Wish You Were Here", ReleaseYear = 1975 };
+        var bandDict  = new Dictionary<string, Band>(StringComparer.OrdinalIgnoreCase);
+        var albumDict = new Dictionary<(string, string), Album>();
+        var songs     = new List<Song>();
+        int fallbackTrack = 1;
 
-        var queen = bandsFromDb.First(b => b.Name == "Queen");
-        var bohemian = new Album { Id = Guid.NewGuid(), BandId = queen.Id, Title = "A Night at the Opera", ReleaseYear = 1975 };
-        var news = new Album { Id = Guid.NewGuid(), BandId = queen.Id, Title = "News of the World", ReleaseYear = 1977 };
-
-        var bowie = bandsFromDb.First(b => b.Name == "David Bowie");
-        var ziggy = new Album { Id = Guid.NewGuid(), BandId = bowie.Id, Title = "The Rise and Fall of Ziggy Stardust", ReleaseYear = 1972 };
-
-        var zeppelin = bandsFromDb.First(b => b.Name == "Led Zeppelin");
-        var iv = new Album { Id = Guid.NewGuid(), BandId = zeppelin.Id, Title = "Led Zeppelin IV", ReleaseYear = 1971 };
-
-        var stones = bandsFromDb.First(b => b.Name == "The Rolling Stones");
-        var satisfaction = new Album { Id = Guid.NewGuid(), BandId = stones.Id, Title = "Satisfaction", ReleaseYear = 1965 };
-
-        var albums = new[] { abeyRoad, whiteSongs, darkSide, wish, bohemian, news, ziggy, iv, satisfaction };
-        await db.Albums.AddRangeAsync(albums);
-        await db.SaveChangesAsync();
-
-        var albumsFromDb = await db.Albums.ToListAsync();
-
-        var songs = new List<Song>();
-
-        // Abbey Road
-        songs.AddRange(new[]
+        foreach (var filePath in files)
         {
-            new Song { Id = Guid.NewGuid(), AlbumId = abeyRoad.Id, Title = "Come Together", TrackNumber = 1, DurationSeconds = 259 },
-            new Song { Id = Guid.NewGuid(), AlbumId = abeyRoad.Id, Title = "Something", TrackNumber = 2, DurationSeconds = 183 },
-            new Song { Id = Guid.NewGuid(), AlbumId = abeyRoad.Id, Title = "Maxwell's Silver Hammer", TrackNumber = 3, DurationSeconds = 207 },
-            new Song { Id = Guid.NewGuid(), AlbumId = abeyRoad.Id, Title = "Oh! Darling", TrackNumber = 4, DurationSeconds = 210 },
-        });
+            using var tagFile = TagLib.File.Create(filePath);
+            var artist    = NullIfEmpty(tagFile.Tag.FirstPerformer?.Trim()) ?? "Unknown Artist";
+            var albumName = NullIfEmpty(tagFile.Tag.Album?.Trim()) ?? "Unknown Album";
+            var title     = NullIfEmpty(tagFile.Tag.Title?.Trim())
+                            ?? Path.GetFileNameWithoutExtension(filePath);
+            var track     = (int)tagFile.Tag.Track;
+            var duration  = (int)tagFile.Properties.Duration.TotalSeconds;
+            var genre     = NullIfEmpty(tagFile.Tag.FirstGenre?.Trim()) ?? "Unknown";
+            var year      = tagFile.Tag.Year > 0 ? (int)tagFile.Tag.Year : DateTime.UtcNow.Year;
+            var bytes     = await File.ReadAllBytesAsync(filePath);
 
-        // The White Album
-        songs.AddRange(new[]
-        {
-            new Song { Id = Guid.NewGuid(), AlbumId = whiteSongs.Id, Title = "Back in the U.S.S.R.", TrackNumber = 1, DurationSeconds = 230 },
-            new Song { Id = Guid.NewGuid(), AlbumId = whiteSongs.Id, Title = "Dear Prudence", TrackNumber = 2, DurationSeconds = 241 },
-            new Song { Id = Guid.NewGuid(), AlbumId = whiteSongs.Id, Title = "Glass Onion", TrackNumber = 3, DurationSeconds = 246 },
-            new Song { Id = Guid.NewGuid(), AlbumId = whiteSongs.Id, Title = "Ob-La-Di, Ob-La-Da", TrackNumber = 4, DurationSeconds = 171 },
-        });
+            if (!bandDict.TryGetValue(artist, out var band))
+            {
+                band = new Band { Id = Guid.NewGuid(), Name = artist, Genre = genre, FormedYear = year };
+                bandDict[artist] = band;
+            }
 
-        // The Dark Side of the Moon
-        songs.AddRange(new[]
-        {
-            new Song { Id = Guid.NewGuid(), AlbumId = darkSide.Id, Title = "Speak to Me", TrackNumber = 1, DurationSeconds = 90 },
-            new Song { Id = Guid.NewGuid(), AlbumId = darkSide.Id, Title = "Breathe", TrackNumber = 2, DurationSeconds = 163 },
-            new Song { Id = Guid.NewGuid(), AlbumId = darkSide.Id, Title = "On the Run", TrackNumber = 3, DurationSeconds = 345 },
-            new Song { Id = Guid.NewGuid(), AlbumId = darkSide.Id, Title = "Time", TrackNumber = 4, DurationSeconds = 408 },
-        });
+            var key = (artist, albumName);
+            if (!albumDict.TryGetValue(key, out var alb))
+            {
+                alb = new Album { Id = Guid.NewGuid(), BandId = band.Id, Title = albumName, ReleaseYear = year };
+                albumDict[key] = alb;
+            }
 
-        // Wish You Were Here
-        songs.AddRange(new[]
-        {
-            new Song { Id = Guid.NewGuid(), AlbumId = wish.Id, Title = "Shine On You Crazy Diamond", TrackNumber = 1, DurationSeconds = 745 },
-            new Song { Id = Guid.NewGuid(), AlbumId = wish.Id, Title = "Welcome to the Machine", TrackNumber = 2, DurationSeconds = 360 },
-            new Song { Id = Guid.NewGuid(), AlbumId = wish.Id, Title = "Have a Cigar", TrackNumber = 3, DurationSeconds = 330 },
-            new Song { Id = Guid.NewGuid(), AlbumId = wish.Id, Title = "Wish You Were Here", TrackNumber = 4, DurationSeconds = 295 },
-        });
+            songs.Add(new Song
+            {
+                Id              = Guid.NewGuid(),
+                AlbumId         = alb.Id,
+                Title           = title,
+                TrackNumber     = track > 0 ? track : fallbackTrack++,
+                DurationSeconds = duration,
+                AudioData       = bytes,
+                ContentType     = "audio/mpeg",
+            });
+        }
 
-        // A Night at the Opera
-        songs.AddRange(new[]
-        {
-            new Song { Id = Guid.NewGuid(), AlbumId = bohemian.Id, Title = "Death on Two Legs", TrackNumber = 1, DurationSeconds = 356 },
-            new Song { Id = Guid.NewGuid(), AlbumId = bohemian.Id, Title = "Lazing on a Sunday Afternoon", TrackNumber = 2, DurationSeconds = 282 },
-            new Song { Id = Guid.NewGuid(), AlbumId = bohemian.Id, Title = "I'm in Love with My Car", TrackNumber = 3, DurationSeconds = 199 },
-            new Song { Id = Guid.NewGuid(), AlbumId = bohemian.Id, Title = "Bohemian Rhapsody", TrackNumber = 5, DurationSeconds = 354 },
-        });
-
-        // News of the World
-        songs.AddRange(new[]
-        {
-            new Song { Id = Guid.NewGuid(), AlbumId = news.Id, Title = "We Will Rock You", TrackNumber = 1, DurationSeconds = 125 },
-            new Song { Id = Guid.NewGuid(), AlbumId = news.Id, Title = "Another One Bites the Dust", TrackNumber = 2, DurationSeconds = 215 },
-            new Song { Id = Guid.NewGuid(), AlbumId = news.Id, Title = "Sheer Heart Attack", TrackNumber = 3, DurationSeconds = 199 },
-            new Song { Id = Guid.NewGuid(), AlbumId = news.Id, Title = "All Dead, All Dead", TrackNumber = 4, DurationSeconds = 227 },
-        });
-
-        // The Rise and Fall of Ziggy Stardust
-        songs.AddRange(new[]
-        {
-            new Song { Id = Guid.NewGuid(), AlbumId = ziggy.Id, Title = "Five Years", TrackNumber = 1, DurationSeconds = 300 },
-            new Song { Id = Guid.NewGuid(), AlbumId = ziggy.Id, Title = "Soul Love", TrackNumber = 2, DurationSeconds = 310 },
-            new Song { Id = Guid.NewGuid(), AlbumId = ziggy.Id, Title = "Moonage Daydream", TrackNumber = 3, DurationSeconds = 215 },
-            new Song { Id = Guid.NewGuid(), AlbumId = ziggy.Id, Title = "Starman", TrackNumber = 4, DurationSeconds = 260 },
-        });
-
-        // Led Zeppelin IV
-        songs.AddRange(new[]
-        {
-            new Song { Id = Guid.NewGuid(), AlbumId = iv.Id, Title = "Black Dog", TrackNumber = 1, DurationSeconds = 296 },
-            new Song { Id = Guid.NewGuid(), AlbumId = iv.Id, Title = "Rock and Roll", TrackNumber = 2, DurationSeconds = 236 },
-            new Song { Id = Guid.NewGuid(), AlbumId = iv.Id, Title = "The Battle of Evermore", TrackNumber = 3, DurationSeconds = 367 },
-            new Song { Id = Guid.NewGuid(), AlbumId = iv.Id, Title = "Stairway to Heaven", TrackNumber = 4, DurationSeconds = 482 },
-        });
-
-        // Satisfaction
-        songs.AddRange(new[]
-        {
-            new Song { Id = Guid.NewGuid(), AlbumId = satisfaction.Id, Title = "Tell Me", TrackNumber = 1, DurationSeconds = 219 },
-            new Song { Id = Guid.NewGuid(), AlbumId = satisfaction.Id, Title = "(I Can't Get No) Satisfaction", TrackNumber = 2, DurationSeconds = 264 },
-            new Song { Id = Guid.NewGuid(), AlbumId = satisfaction.Id, Title = "Grown Up Wrong", TrackNumber = 3, DurationSeconds = 172 },
-            new Song { Id = Guid.NewGuid(), AlbumId = satisfaction.Id, Title = "Down Home Girl", TrackNumber = 4, DurationSeconds = 223 },
-        });
-
+        await db.Bands.AddRangeAsync(bandDict.Values);
+        await db.Albums.AddRangeAsync(albumDict.Values);
         await db.Songs.AddRangeAsync(songs);
         await db.SaveChangesAsync();
     }
+
+    private static string? NullIfEmpty(string? s) =>
+        string.IsNullOrWhiteSpace(s) ? null : s;
 
     private static async Task SeedCardsAsync(AppDbContext db)
     {
@@ -403,6 +344,9 @@ public static class DbSeeder
         var users = await db.Users.Where(u => u.Email != null && u.Email.StartsWith("user")).ToListAsync();
         var songs = await db.Songs.Take(10).ToListAsync();
         var bands = await db.Bands.Take(3).ToListAsync();
+
+        if (users.Count < 3 || songs.Count < 7 || bands.Count < 3)
+            return;
 
         var favoriteSongs = new List<FavoriteSong>();
         var favoriteBands = new List<FavoriteBand>();

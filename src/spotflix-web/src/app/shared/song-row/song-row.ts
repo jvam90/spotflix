@@ -9,10 +9,10 @@ import { apiError, formatDuration } from '../../core/util';
   selector: 'app-song-row',
   template: `
     @let s = song();
-    <div class="song" [class.playing]="isCurrent()" (dblclick)="play()">
+    <div class="song" [class.playing]="isCurrent()" [class.no-audio]="!s.hasAudio" (dblclick)="play()">
       <div class="idx">
         <span class="num">{{ index() }}</span>
-        <button class="play" (click)="play()" title="Tocar">
+        <button class="play" (click)="play()" [title]="s.hasAudio ? 'Tocar' : 'Sem áudio'" [disabled]="!s.hasAudio">
           <span class="material-symbols-rounded">{{ isCurrent() && player.isPlaying() ? 'pause' : 'play_arrow' }}</span>
         </button>
       </div>
@@ -42,6 +42,8 @@ import { apiError, formatDuration } from '../../core/util';
     .idx { display: grid; place-items: center; }
     .num { color: var(--text-soft); font-size: 14px; font-variant-numeric: tabular-nums; }
     .play { display: none; background: none; border: none; color: #fff; cursor: pointer; place-items: center; }
+    .no-audio .title { opacity: 0.45; }
+    .no-audio .play { opacity: 0.3; cursor: default; }
     .meta { min-width: 0; }
     .title { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sub { font-size: 13px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

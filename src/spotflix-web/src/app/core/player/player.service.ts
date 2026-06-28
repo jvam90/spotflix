@@ -7,10 +7,6 @@ export interface PlayableSong extends Song {
   albumTitle?: string;
 }
 
-/**
- * Simulated playback engine. The catalog stores metadata only (no audio files),
- * so this advances a virtual playhead with a timer to drive the player UI.
- */
 @Injectable({ providedIn: 'root' })
 export class PlayerService {
   private queue = signal<PlayableSong[]>([]);
@@ -18,12 +14,34 @@ export class PlayerService {
 
   readonly current = computed<PlayableSong | null>(() => this.queue()[this.index()] ?? null);
   readonly isPlaying = signal(false);
-  readonly position = signal(0); // seconds into the current track
+  readonly position = signal(0);
   readonly volume = signal(0.8);
 
-  private ticker?: ReturnType<typeof setInterval>;
+  private readonly audio = new Audio();
+
+  constructor() {
+    this.audio.volume = this.volume();
+
+    this.audio.addEventListener('timeupdate', () => {
+      this.position.set(Math.floor(this.audio.currentTime));
+    });
+
+    this.audio.addEventListener('ended', () => {
+      this.next();
+    });
+
+    this.audio.addEventListener('play', () => {
+      this.isPlaying.set(true);
+    });
+
+    this.audio.addEventListener('pause', () => {
+      this.isPlaying.set(false);
+    });
+  }
 
   playSong(song: PlayableSong, queue?: PlayableSong[]): void {
+    if (!song.hasAudio) return;
+
     if (queue?.length) {
       this.queue.set(queue);
       this.index.set(Math.max(0, queue.findIndex((s) => s.id === song.id)));
@@ -31,66 +49,64 @@ export class PlayerService {
       this.queue.set([song]);
       this.index.set(0);
     }
+
     this.position.set(0);
-    this.start();
+    this.audio.src = `/api/songs/${song.id}/stream`;
+    this.audio.play();
   }
 
   toggle(): void {
     if (!this.current()) return;
-    this.isPlaying() ? this.pause() : this.start();
+    this.audio.paused ? this.audio.play() : this.audio.pause();
   }
 
   next(): void {
     if (this.index() < this.queue().length - 1) {
       this.index.update((i) => i + 1);
       this.position.set(0);
-      this.start();
+      const next = this.current();
+      if (next?.hasAudio) {
+        this.audio.src = `/api/songs/${next.id}/stream`;
+        this.audio.play();
+      } else {
+        this.isPlaying.set(false);
+      }
     } else {
-      this.pause();
+      this.audio.pause();
       this.position.set(0);
     }
   }
 
   previous(): void {
-    if (this.position() > 3) { this.position.set(0); return; }
+    if (this.position() > 3) {
+      this.audio.currentTime = 0;
+      return;
+    }
     if (this.index() > 0) {
       this.index.update((i) => i - 1);
       this.position.set(0);
-      this.start();
+      const prev = this.current();
+      if (prev?.hasAudio) {
+        this.audio.src = `/api/songs/${prev.id}/stream`;
+        this.audio.play();
+      } else {
+        this.isPlaying.set(false);
+      }
     } else {
+      this.audio.currentTime = 0;
       this.position.set(0);
     }
   }
 
   seek(seconds: number): void {
-    this.position.set(Math.max(0, seconds));
+    const target = Math.max(0, seconds);
+    this.audio.currentTime = target;
+    this.position.set(target);
   }
 
   setVolume(v: number): void {
-    this.volume.set(Math.min(1, Math.max(0, v)));
-  }
-
-  private start(): void {
-    this.isPlaying.set(true);
-    this.stopTicker();
-    this.ticker = setInterval(() => {
-      const cur = this.current();
-      if (!cur) { this.pause(); return; }
-      const nextPos = this.position() + 1;
-      if (nextPos >= cur.durationSeconds) {
-        this.next();
-      } else {
-        this.position.set(nextPos);
-      }
-    }, 1000);
-  }
-
-  private pause(): void {
-    this.isPlaying.set(false);
-    this.stopTicker();
-  }
-
-  private stopTicker(): void {
-    if (this.ticker) { clearInterval(this.ticker); this.ticker = undefined; }
+    const vol = Math.min(1, Math.max(0, v));
+    this.volume.set(vol);
+    this.audio.volume = vol;
   }
 }

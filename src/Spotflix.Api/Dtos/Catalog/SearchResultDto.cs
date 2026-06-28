@@ -17,4 +17,5 @@ public record SongSearchHitDto
     public string AlbumTitle { get; init; } = null!;
     public Guid BandId { get; init; }
     public string BandName { get; init; } = null!;
+    public bool HasAudio { get; init; }
 }

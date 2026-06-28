@@ -82,6 +82,7 @@ public record SongDto
     public int DurationSeconds { get; init; }
     public int TrackNumber { get; init; }
     public Guid AlbumId { get; init; }
+    public bool HasAudio { get; init; }
 }
 
 public record CreateSongDto

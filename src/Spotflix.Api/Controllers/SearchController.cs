@@ -49,6 +49,7 @@ public class SearchController : ControllerBase
             AlbumTitle = s.Album.Title,
             BandId = s.Album.BandId,
             BandName = s.Album.Band.Name,
+            HasAudio = s.AudioData != null,
         }).ToList();
 
         return Ok(new SearchResultDto { Bands = bandDtos, Songs = songDtos });

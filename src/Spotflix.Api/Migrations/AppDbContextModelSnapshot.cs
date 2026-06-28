@@ -357,6 +357,12 @@ namespace Spotflix.Api.Migrations
                     b.Property<Guid>("AlbumId")
                         .HasColumnType("uuid");
 
+                    b.Property<byte[]>("AudioData")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("ContentType")
+                        .HasColumnType("text");
+
                     b.Property<int>("DurationSeconds")
                         .HasColumnType("integer");
 

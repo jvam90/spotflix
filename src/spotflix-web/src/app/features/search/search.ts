@@ -81,6 +81,7 @@ export class Search {
     (this.result()?.songs ?? []).map((s) => ({
       id: s.id, title: s.title, durationSeconds: s.durationSeconds, trackNumber: 0,
       albumId: s.albumId, bandName: s.bandName, albumTitle: s.albumTitle,
+      hasAudio: s.hasAudio,
     })));
 
   protected onInput(value: string) {

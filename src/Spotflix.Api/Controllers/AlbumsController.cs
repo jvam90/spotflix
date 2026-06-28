@@ -63,6 +63,7 @@ public class AlbumsController : ControllerBase
                         DurationSeconds = s.DurationSeconds,
                         TrackNumber = s.TrackNumber,
                         AlbumId = s.AlbumId,
+                        HasAudio = s.AudioData != null,
                     }).ToList(),
             })
             .FirstOrDefaultAsync(ct);
