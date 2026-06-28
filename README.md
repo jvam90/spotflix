@@ -25,7 +25,18 @@ Plataforma de streaming de música com catálogo real de MP3, gerenciamento de a
 - PostgreSQL 12+
 - smtp4dev — `dotnet tool install -g Rnwood.Smtp4dev`
 
-### 1. Banco de dados
+### 1. Configurar credenciais
+
+Copie o arquivo de exemplo e preencha com seus valores:
+
+```bash
+cp src/Spotflix.Api/appsettings.Development.json.example \
+   src/Spotflix.Api/appsettings.Development.json
+```
+
+Edite `appsettings.Development.json` com sua senha do PostgreSQL, uma chave JWT segura (mínimo 32 caracteres) e a senha do admin desejada. **Esse arquivo está no `.gitignore` e nunca deve ser commitado.**
+
+### 2. Banco de dados
 
 Crie o banco (as migrations são aplicadas automaticamente na inicialização):
 
@@ -33,21 +44,7 @@ Crie o banco (as migrations são aplicadas automaticamente na inicialização):
 psql -U postgres -c "CREATE DATABASE spotflix_db;"
 ```
 
-Configure a connection string em `src/Spotflix.Api/appsettings.Development.json`:
-
-```json
-{
-  "ConnectionStrings": {
-    "Default": "Host=localhost;Port=5432;Database=spotflix_db;Username=postgres;Password=sua_senha"
-  },
-  "Seed": {
-    "AdminEmail": "admin@spotflix.com",
-    "AdminPassword": "Admin@123456"
-  }
-}
-```
-
-### 2. Backend
+### 3. Backend
 
 ```bash
 cd src/Spotflix.Api
@@ -56,7 +53,7 @@ dotnet run
 
 A API sobe em `https://localhost:7001`. Na primeira execução, as migrations são aplicadas e o banco é populado automaticamente com usuários, planos e o catálogo de MP3s.
 
-### 3. Email (smtp4dev)
+### 4. Email (smtp4dev)
 
 O cadastro de novos usuários exige confirmação de e-mail. Em desenvolvimento, use o smtp4dev para capturar os e-mails localmente:
 
@@ -69,7 +66,7 @@ Fluxo de confirmação:
 2. Abrir `http://localhost:5000` → copiar `userId` e `token` do e-mail recebido
 3. `POST /api/auth/confirm-email` com os valores copiados
 
-### 4. Frontend
+### 5. Frontend
 
 ```bash
 cd src/spotflix-web
@@ -169,6 +166,9 @@ spotflix-master/
 ---
 
 ## Troubleshooting
+
+**"Connection string 'Default' não configurada"**
+O arquivo `appsettings.Development.json` não existe ou está incompleto. Copie o `.example` e preencha os valores.
 
 **Conexão recusada na porta 5432**
 Verifique se o PostgreSQL está em execução (`services.msc` no Windows).
