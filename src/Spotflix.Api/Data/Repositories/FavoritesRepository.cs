@@ -15,6 +15,7 @@ public class FavoritesRepository : IFavoritesRepository
     public async Task<IReadOnlyList<FavoriteSong>> GetUserFavoriteSongsAsync(Guid userId, CancellationToken ct = default)
     {
         return await _db.FavoriteSongs.AsNoTracking()
+            .Include(f => f.Song)
             .Where(f => f.UserId == userId)
             .OrderByDescending(f => f.CreatedAt)
             .ToListAsync(ct);
@@ -23,6 +24,7 @@ public class FavoritesRepository : IFavoritesRepository
     public async Task<IReadOnlyList<FavoriteBand>> GetUserFavoriteBandsAsync(Guid userId, CancellationToken ct = default)
     {
         return await _db.FavoriteBands.AsNoTracking()
+            .Include(f => f.Band).ThenInclude(b => b.Albums)
             .Where(f => f.UserId == userId)
             .OrderByDescending(f => f.CreatedAt)
             .ToListAsync(ct);
